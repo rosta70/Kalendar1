@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Calendar from './components/Calendar';
 import CalendarHeader from './components/CalendarHeader';
+import EventModal from './components/EventModal';
 import { DownloadIcon } from './components/Icons';
+import { CalendarEvent } from './types';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -15,6 +17,38 @@ interface BeforeInstallPromptEvent extends Event {
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  // Načtení událostí z localStorage při prvním renderu
+  useEffect(() => {
+    try {
+      const storedEvents = localStorage.getItem('calendarEvents');
+      if (storedEvents) {
+        setEvents(JSON.parse(storedEvents));
+      }
+    } catch (error) {
+      console.error("Nepodařilo se načíst události z localStorage", error);
+    }
+  }, []);
+
+  // Uložení událostí do localStorage při každé změně
+  useEffect(() => {
+    try {
+        if (events.length > 0) {
+            localStorage.setItem('calendarEvents', JSON.stringify(events));
+        } else {
+            // Pokud je pole událostí prázdné po nějaké akci (např. smazání poslední události)
+            const storedEvents = localStorage.getItem('calendarEvents');
+            if (storedEvents) {
+                localStorage.removeItem('calendarEvents');
+            }
+        }
+    } catch (error) {
+        console.error("Nepodařilo se uložit události do localStorage", error);
+    }
+  }, [events]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -53,24 +87,42 @@ const App: React.FC = () => {
     await installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') {
-      console.log('Uživatel přijal instalaci');
       setInstallPrompt(null);
-    } else {
-      console.log('Uživatel odmítl instalaci');
     }
   }, [installPrompt]);
 
+  const handleDayClick = useCallback((date: Date) => {
+    setSelectedDate(date);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedDate(null);
+  }, []);
+
+  const handleAddEvent = useCallback((title: string) => {
+    if (selectedDate) {
+      const newEvent: CalendarEvent = {
+        date: selectedDate.toISOString().split('T')[0],
+        title,
+      };
+      setEvents(prevEvents => [...prevEvents, newEvent]);
+      handleCloseModal();
+    }
+  }, [selectedDate, handleCloseModal]);
+
   return (
     <main className="bg-gray-900 min-h-screen flex items-center justify-center p-4 font-sans antialiased">
-      <div className="w-full max-w-sm mx-auto text-white flex flex-col items-center">
-        <div className="w-full bg-gray-800 rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300">
+      <div className="w-full max-w-2xl mx-auto text-white flex flex-col items-center">
+        <div className="w-full bg-gray-800 rounded-3xl shadow-2xl overflow-hidden">
           <div className="p-6">
             <CalendarHeader 
               currentDate={currentDate} 
               onPrevMonth={handlePrevMonth} 
               onNextMonth={handleNextMonth} 
             />
-            <Calendar currentDate={currentDate} />
+            <Calendar currentDate={currentDate} events={events} onDayClick={handleDayClick} />
           </div>
         </div>
         {installPrompt && (
@@ -84,6 +136,12 @@ const App: React.FC = () => {
           </button>
         )}
       </div>
+      <EventModal 
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleAddEvent}
+        date={selectedDate}
+      />
     </main>
   );
 };
