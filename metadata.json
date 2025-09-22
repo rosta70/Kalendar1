@@ -1,0 +1,5 @@
+{
+  "name": "Android Kalendář",
+  "description": "Jednoduchá a elegantní aplikace kalendáře s designem inspirovaným Androidem, postavená v Reactu.",
+  "requestFramePermissions": []
+}

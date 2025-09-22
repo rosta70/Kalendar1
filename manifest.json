@@ -1,0 +1,21 @@
+{
+  "short_name": "Kalendář",
+  "name": "Android Kalendář",
+  "description": "Jednoduchá a elegantní aplikace kalendáře s designem inspirovaným Androidem.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1f2937",
+  "background_color": "#111827"
+}
