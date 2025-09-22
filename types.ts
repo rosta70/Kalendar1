@@ -10,3 +10,7 @@ export interface CalendarEvent {
   date: string; // Uloženo jako YYYY-MM-DD pro zamezení problémů s časovými zónami
   title: string;
 }
+
+export interface User {
+  email: string;
+}

@@ -3,7 +3,7 @@ import Calendar from './components/Calendar';
 import CalendarHeader from './components/CalendarHeader';
 import EventModal from './components/EventModal';
 import { DownloadIcon } from './components/Icons';
-import { CalendarEvent } from './types';
+import { CalendarEvent, User } from './types';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -14,41 +14,43 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-const App: React.FC = () => {
+interface AppProps {
+    currentUser: User;
+    onLogout: () => void;
+}
+
+const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Načtení událostí z localStorage při prvním renderu
+  const getEventsKey = useCallback(() => `calendarEvents_${currentUser.email}`, [currentUser.email]);
+
+  // Načtení událostí z localStorage při prvním renderu nebo změně uživatele
   useEffect(() => {
     try {
-      const storedEvents = localStorage.getItem('calendarEvents');
+      const storedEvents = localStorage.getItem(getEventsKey());
       if (storedEvents) {
         setEvents(JSON.parse(storedEvents));
+      } else {
+        setEvents([]);
       }
     } catch (error) {
       console.error("Nepodařilo se načíst události z localStorage", error);
+      setEvents([]);
     }
-  }, []);
+  }, [getEventsKey]);
 
   // Uložení událostí do localStorage při každé změně
   useEffect(() => {
     try {
-        if (events.length > 0) {
-            localStorage.setItem('calendarEvents', JSON.stringify(events));
-        } else {
-            // Pokud je pole událostí prázdné po nějaké akci (např. smazání poslední události)
-            const storedEvents = localStorage.getItem('calendarEvents');
-            if (storedEvents) {
-                localStorage.removeItem('calendarEvents');
-            }
-        }
+      localStorage.setItem(getEventsKey(), JSON.stringify(events));
     } catch (error) {
         console.error("Nepodařilo se uložit události do localStorage", error);
     }
-  }, [events]);
+  }, [events, getEventsKey]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -120,7 +122,9 @@ const App: React.FC = () => {
             <CalendarHeader 
               currentDate={currentDate} 
               onPrevMonth={handlePrevMonth} 
-              onNextMonth={handleNextMonth} 
+              onNextMonth={handleNextMonth}
+              currentUser={currentUser}
+              onLogout={onLogout}
             />
             <Calendar currentDate={currentDate} events={events} onDayClick={handleDayClick} />
           </div>
